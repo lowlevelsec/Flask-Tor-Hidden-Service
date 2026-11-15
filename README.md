@@ -158,18 +158,3 @@ pytest -q
 ```
 
 Tests cover login protection, security headers, persisted notes and HTML escaping, authenticated file upload/download, active-content extension rejection, CSRF enforcement and migration from the original `users.password` database schema.
-
-## Git hygiene
-
-Before the first push:
-
-```bash
-git status --short
-git check-ignore .env instance/sql_database.db instance/uploads/
-```
-
-Make sure `.env`, SQLite databases, WAL/SHM files, uploaded files, Tor keys and backups are not staged. If a secret or database was committed earlier, `.gitignore` does not remove it from Git history: rotate the secret and remove sensitive history before publishing.
-
-## License
-
-Choose and add a license before accepting contributions or redistributing the project.
