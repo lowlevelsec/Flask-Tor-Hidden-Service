@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Logout · Onion Vault{% endblock %}
+{% block content %}
+<section class="auth-card">
+    <p class="eyebrow">SESSION</p>
+    <h1>Logout</h1>
+    <p class="muted">End the current authenticated session?</p>
+    <form action="{{ url_for('logout') }}" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="button button-danger" type="submit">Logout</button>
+        <a class="button button-secondary" href="{{ url_for('index') }}">Cancel</a>
+    </form>
+</section>
+{% endblock %}

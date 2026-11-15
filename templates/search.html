@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Search · Onion Vault{% endblock %}
+{% block content %}
+<section class="panel narrow-panel">
+    <p class="eyebrow">INPUT HANDLING</p>
+    <h1>Search demo</h1>
+    <form action="{{ url_for('search') }}" method="get" class="form-stack">
+        <label for="q">Search query</label>
+        <input id="q" name="q" value="{{ query }}" maxlength="200" autocomplete="off">
+        <button class="button button-primary" type="submit">Search</button>
+    </form>
+    <div class="result-box">
+        <h2>Search results for</h2>
+        <p>{{ query }}</p>
+    </div>
+    <a class="text-link" href="{{ url_for('index') }}">← Back to dashboard</a>
+</section>
+{% endblock %}

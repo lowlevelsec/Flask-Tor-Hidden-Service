@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Request error · Onion Vault{% endblock %}
+{% block content %}
+<section class="auth-card">
+    <p class="eyebrow">REQUEST ERROR</p>
+    <h1>Unable to complete request</h1>
+    <p class="muted">{{ message }}</p>
+    <a class="button button-secondary" href="{{ url_for('index') }}">Back to dashboard</a>
+</section>
+{% endblock %}
