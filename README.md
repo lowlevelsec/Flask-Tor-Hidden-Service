@@ -1,8 +1,8 @@
-# Onion Vault
+# Flask Onion Hidden Service
 
-A small Flask-based, authenticated file and note service intended to run behind a Tor v3 Onion Service. It has no public registration route: accounts are created locally through the Flask CLI.
+A lightweight Flask-based, authenticated file and note service intended to run behind a Tor v3 Onion Service. It has no public registration route: accounts are created locally through the Flask CLI.
 
-> **Security scope:** this is a hardened starter project, not “bulletproof” or independently security-audited software. A secure application still depends on the host OS, deployment configuration, dependency patching, operator practices and threat model.
+> **Security scope:** this is a hardened flask project, not “bulletproof” or independently security-audited software. A secure application still depends on the host OS, deployment configuration, dependency patching, operator practices and threat model.
 
 ## Features
 
@@ -24,6 +24,7 @@ flask-onion-vault/
 ├── requirements.txt
 ├── requirements-dev.txt
 ├── requirements-production.txt
+├── host_onion_service.sh
 ├── .env.example
 ├── .gitignore
 ├── README.md
@@ -105,9 +106,50 @@ flask --app flask_server run --host 127.0.0.1 --port 5000
 
 Open `http://127.0.0.1:5000`. The `app.run()` block is also bound to loopback, never `0.0.0.0`.
 
-## Tor Onion Service deployment
+## Automated Debian / Ubuntu deployment
 
-Do not expose Flask's development server to the network. On the Linux host, run Gunicorn as a dedicated unprivileged service account and bind only to loopback:
+The included `host_onion_service.sh` installs and configures the production deployment on a fresh Debian or Ubuntu host using systemd. It supports `amd64` and `arm64` and must be run from the project root:
+
+```bash
+chmod 0755 host_onion_service.sh
+sudo ./host_onion_service.sh
+```
+
+The installer:
+
+- Adds the Tor Project APT repository using the repository signing key after checking its published fingerprint, then installs Tor and the Python build/runtime dependencies.
+- Creates a dedicated unprivileged `flask-onion-vault` account.
+- Installs the application under `/opt/flask-onion-vault`, creates a virtual environment and installs `requirements-production.txt` (including Gunicorn).
+- Creates a strong `SECRET_KEY` and a root-only environment file at `/etc/flask-onion-vault/flask-onion-vault.env`.
+- Stores the SQLite database and uploads under `/var/lib/flask-onion-vault/`, outside the application web root.
+- Adds a clearly marked, repeatable Onion Service block to `/etc/tor/torrc`, first making a timestamped backup. Existing unrelated Tor configuration is preserved.
+- Installs a hardened Gunicorn systemd unit, enables both services at boot and binds Gunicorn only to `127.0.0.1:5000`.
+- Waits for Tor to create the v3 hostname, prints it and stores the public address in `/etc/flask-onion-vault/ONION_ADDRESS.txt`.
+- Offers to create the first application account interactively when the installer is run in a terminal.
+
+The script intentionally does **not** open any public firewall ports. Tor forwards the onion virtual port 80 to the loopback-only Gunicorn listener. It does not install a firewall, configure unattended OS upgrades, scan uploaded files for malware, or independently audit the host. Review the script before running it as root. It is designed to be re-runnable: the existing application secret and Tor Onion Service keys are preserved.
+
+After deployment, useful commands are:
+
+```bash
+sudo systemctl status flask-onion-vault
+sudo systemctl status tor@default
+sudo journalctl -u flask-onion-vault -f
+sudo journalctl -u tor@default -f
+sudo cat /etc/flask-onion-vault/ONION_ADDRESS.txt
+```
+
+If the installer was run non-interactively, or you skipped account creation, create the first account with:
+
+```bash
+sudo bash -c 'set -a; source /etc/flask-onion-vault/flask-onion-vault.env; set +a; cd /opt/flask-onion-vault; exec runuser -u flask-onion-vault -- env SECRET_KEY="$SECRET_KEY" DATABASE_PATH="$DATABASE_PATH" UPLOAD_FOLDER="$UPLOAD_FOLDER" /opt/flask-onion-vault/.venv/bin/flask --app flask_server create-user'
+```
+
+The Tor private keys are stored in `/var/lib/tor/flask-onion-vault/`. Protect and back up this directory securely. Anyone who obtains the private keys can impersonate the Onion Service. Do not copy the directory into Git or share it.
+
+### Manual deployment
+
+Do not expose the Flask development server to the network. If you do not use the installer, run Gunicorn as a dedicated unprivileged service account and bind only to loopback:
 
 ```bash
 umask 077
@@ -158,3 +200,18 @@ pytest -q
 ```
 
 Tests cover login protection, security headers, persisted notes and HTML escaping, authenticated file upload/download, active-content extension rejection, CSRF enforcement and migration from the original `users.password` database schema.
+
+## Git hygiene
+
+Before the first push:
+
+```bash
+git status --short
+git check-ignore .env instance/sql_database.db instance/uploads/
+```
+
+Make sure `.env`, SQLite databases, WAL/SHM files, uploaded files, Tor keys and backups are not staged. If a secret or database was committed earlier, `.gitignore` does not remove it from Git history: rotate the secret and remove sensitive history before publishing.
+
+## License
+
+Choose and add a license before accepting contributions or redistributing the project.
