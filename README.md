@@ -1,4 +1,4 @@
-# Flask Onion Hidden Service
+# Flask Hidden Onion Service
 
 A lightweight Flask-based, authenticated file and note service intended to run behind a Tor v3 Onion Service. It has no public registration route: accounts are created locally through the Flask CLI.
 
